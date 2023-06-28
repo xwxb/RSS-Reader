@@ -8,4 +8,5 @@ export default defineEventHandler((event) => {
         'X-XSS-Protection': 1
     }
     setHeaders(event, headers)
+    console.log("success set cors header! ")
 })
