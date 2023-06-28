@@ -6,43 +6,35 @@
 
                 <!-- 标题 -->
                 <v-list-item>
-                    <v-list-item-content>
-                        <v-list-item-title class="title">
-                            RSS Reader
-                        </v-list-item-title>
-                    </v-list-item-content>
+                    <v-list-item-title class="title">
+                        RSS Reader
+                    </v-list-item-title>
                 </v-list-item>
 
                 <v-divider></v-divider>
 
                 <!-- 功能按钮区 -->
                 <v-list-item>
-                    <v-list-item-content>
-                        <v-btn color="blue" class="mdi-plus-btn" icon="mdi-plus" @click="addSubscription" />
-                    </v-list-item-content>
+                    <v-btn color="blue" class="mdi-plus-btn" icon="mdi-plus" @click="addSubscription" />
                 </v-list-item>
 
                 <v-divider></v-divider>
 
                 <!-- 订阅列表 -->
                 <v-list-item @click="selectItem({ title: 'All' })" :class="{ 'selected-item': selected === 'All' }">
-                    <v-list-item-content>
-                        <v-list-item-title>All</v-list-item-title>
-                    </v-list-item-content>
+                    <v-list-item-title>All</v-list-item-title>
                 </v-list-item>
 
                 <v-list-item v-for="(item, index) in items" :key="index" @click="selectItem(item)"
                     :class="{ 'selected-item': selected == item.title }">
-                    <v-list-item-content>
-                        <v-row>
-                            <v-col cols="9">
-                                <v-list-item-title>{{ item.title }}</v-list-item-title>
-                            </v-col>
-                            <v-col cols="3">
-                                <v-app-bar-nav-icon class="mdi-minus-btn" icon="mdi-minus" @click="removeItem(item)" />
-                            </v-col>
-                        </v-row>
-                    </v-list-item-content>
+                    <v-row>
+                        <v-col cols="9">
+                            <v-list-item-title>{{ item.title }}</v-list-item-title>
+                        </v-col>
+                        <v-col cols="3">
+                            <v-app-bar-nav-icon class="mdi-minus-btn" icon="mdi-minus" @click="removeItem(item)" />
+                        </v-col>
+                    </v-row>
                 </v-list-item>
 
             </v-list>
@@ -87,41 +79,23 @@
             </v-dialog>
 
             <!-- 解析呈现 XML 内容 -->
-            <!-- <v-container>
+            <v-container>
                 <v-row>
-                    <v-col v-for="(entry, index) in parsedData?.rss?.channel[0]?.item" :key="index">
+                    <v-col v-for="(entry, index) in getEntries(parsedData)" :key="index">
                         <v-card>
                             <v-card-title>
-                                {{ entry.title[0] }}
+                                {{ entry.title }}
                             </v-card-title>
                             <v-card-text>
-                                {{ entry.description[0] }}
+                                {{ entry.description || entry.summary }}
                             </v-card-text>
                             <v-card-actions>
-                                <v-btn text :href="entry.link[0]" target="_blank">Read More</v-btn>
+                                <v-btn text :href="entry.link" target="_blank">Read More</v-btn>
                             </v-card-actions>
                         </v-card>
                     </v-col>
                 </v-row>
-            </v-container> -->
-            <v-container>
-      <v-row>
-        <v-col v-for="(channel, index) in parsedData?.rss?.channel" :key="index">
-          <v-card v-for="(entry, entryIndex) in channel?.item" :key="entryIndex">
-            <v-card-title>
-              {{ entry.title[0] }}
-            </v-card-title>
-            <v-card-text>
-              {{ entry.description[0] }}
-            </v-card-text>
-            <v-card-actions>
-              <v-btn text :href="entry.link[0]" target="_blank">Read More</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-col>
-      </v-row>
-    </v-container>
-
+            </v-container>
 
         </v-main>
 
@@ -134,6 +108,27 @@ import axios from 'axios';
 
 export default {
     name: 'App',
+    methods: {
+        getEntries(parsedData) {
+            if (parsedData?.rss?.channel?.item) {
+                // Handle the original format
+                return parsedData.rss.channel.item.map((entry) => ({
+                    title: entry.title,
+                    description: entry.description,
+                    link: entry.link
+                }));
+            } else if (parsedData?.feed?.entry) {
+                // Handle the new format
+                return parsedData.feed.entry.map((entry) => ({
+                    title: entry.title,
+                    description: entry.summary,
+                    link: entry.link
+                }));
+            } else {
+                return [];
+            }
+        }
+    },
     setup() {
         const drawer = ref(true);
         const items = ref([]);
@@ -204,10 +199,9 @@ export default {
                 items.value = JSON.parse(storedItems);
             } else {
                 items.value = [
-                    { title: 'CNN', url: 'https://rss.cnn.com/rss/cnn_topstories.rss' },
                     { title: 'BBC', url: 'http://feeds.bbci.co.uk/news/rss.xml' },
                     { title: 'NY Times', url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml' },
-                    { title: 'NY Times', url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml' },
+                    { title: 'ruanyf', url: 'https://www.ruanyifeng.com/blog/atom.xml' },
                 ];
                 localStorage.setItem('items', JSON.stringify(items.value));
             }
