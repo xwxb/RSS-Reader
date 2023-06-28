@@ -137,7 +137,8 @@ export default {
         const url = ref('');
         const selected = ref('All');
         const parsedData = ref();
-        const parseAPI = "http://localhost:3000/api/parse"
+        const localParseAPI = "http://localhost:3000/api/parse"
+        const remoteParseAPI = "http://lrssrd.netlify.app/api/parse"
 
         const selectItem = (item) => {
             console.log(item)
@@ -162,7 +163,7 @@ export default {
                         });
                 })
             } else if (item.url) { // 否则只解析当前 item
-                axios.get(parseAPI, { params: { url: item.url } })
+                axios.get(localParseAPI, { params: { url: item.url } })
                     .then(response => {
                         parsedData.value = JSON.parse(response.data.body);
                         console.log(parsedData.value)
