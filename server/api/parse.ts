@@ -1,6 +1,7 @@
 import axios from "axios";
 import { XMLParser } from 'fast-xml-parser';
 
+
 export default defineEventHandler(async (event) => {
     const query = getQuery(event);
     const itemUrl: string = query.url as string;
