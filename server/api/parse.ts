@@ -8,10 +8,13 @@ export default defineEventHandler(async (event) => {
 
     try {
         console.log("back-end accesss xml of site: ", itemUrl)
-        const response = await axios.get(itemUrl,
-            {
-                headers: { "Access-Control-Allow-Origin": "*", 'Access-Control-Allow-Headers': '*', }
-            });
+        
+        const response = await axios.get(itemUrl, {
+            headers: {
+                'Access-Control-Allow-Origin': '*'
+            }
+        });
+
         const xmlData = response.data;
 
         const parser = new XMLParser();
