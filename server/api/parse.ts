@@ -7,6 +7,7 @@ export default defineEventHandler(async (event) => {
     const itemUrl: string = query.url as string;
 
     try {
+        console.log(itemUrl)
         const response = await axios.get(itemUrl);
         const xmlData = response.data;
 
