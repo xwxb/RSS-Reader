@@ -21,10 +21,6 @@
                 <v-divider></v-divider>
 
                 <!-- 订阅列表 -->
-                <v-list-item @click="selectItem({ title: 'All' })" :class="{ 'selected-item': selected === 'All' }">
-                    <v-list-item-title>All</v-list-item-title>
-                </v-list-item>
-
                 <v-list-item v-for="(item, index) in items" :key="index" @click="selectItem(item)"
                     :class="{ 'selected-item': selected == item.title }">
                     <v-row>
@@ -135,7 +131,7 @@ export default {
         const dialog = ref(false);
         const title = ref('');
         const url = ref('');
-        const selected = ref('All');
+        const selected = ref('');
         const parsedData = ref();
 
         const localParseAPI = "http://localhost:3000/api/parse"
@@ -145,39 +141,79 @@ export default {
         // console.log(config.public.parseAPI)
 
         const selectItem = (item) => {
-            console.log(item)
+            // console.log(item)
             selected.value = item.title
-            console.log(selected)
+            // console.log(selected)
 
-            if (item.title === 'All') { // 如果选中的是 All
-                console.log("AAALLL")
-                parsedData.value = items.value.map(item => { // 解析所有 items 中 item 的值到 prasedData 中
-                    axios.get(item.url)
-                        .then(response => {
-                            parseString(response.data, (err, result) => {
-                                if (err) {
-                                    console.error(err);
-                                } else {
-                                    parsedData.value.push(result);
-                                }
-                            });
-                        })
-                        .catch(error => {
-                            console.error(error);
-                        });
-                })
-            } else if (item.url) { // 否则只解析当前 item
-                axios.get(config.public.parseAPI, { params: { url: item.url } })
-                    .then(response => {
-                        parsedData.value = JSON.parse(response.data.body);
-                        console.log(parsedData.value)
-                    })
-                    .catch(error => {
-                        console.error(error);
-                    });
+            if (item.url) { // 否则只解析当前 item
+                // 打开数据库
+                const dbPromise = indexedDB.open('rssReader', 1);
+
+                // 配置 idb 更新
+                dbPromise.onupgradeneeded = function (event) {
+                    const db = event.target.result;
+                    // 创建对象存储
+                    const objectStore = db.createObjectStore('rssData', { keyPath: 'url' });
+
+                    // 创建索引
+                    objectStore.createIndex('url', 'url', { unique: true })
+                };
+
+
+                dbPromise.onsuccess = function (event) {
+                    const db = event.target.result;
+
+                    // 创建事务
+                    const transaction = db.transaction(['rssData'], 'readwrite');
+                    const objectStore = transaction.objectStore('rssData');
+                    const request = objectStore.get(item.url);
+
+                    request.onsuccess = function (event) {
+                        if (request.result) {
+                            console.log("Date already exist, Get data from indexedDB")
+                            
+                            // 通过 item.url 获取待解析的数据
+                            parsedData.value = JSON.parse(request.result.data);
+
+                            console.log(parsedData.value)
+                        } else {
+                            console.log("No data record, fetch from remote API")
+                            axios.get(config.public.parseAPI, { params: { url: item.url } })
+                                .then(response => {
+                                    parsedData.value = JSON.parse(response.data.body);
+                                    // console.log(response.data.body)
+                                    // console.log(parsedData.value)
+
+                                    // 创建事务进行存储
+                                    const transaction = db.transaction(['rssData'], 'readwrite');
+                                    const objectStore = transaction.objectStore('rssData');
+
+                                    // 如果是存解析后的数据似乎有不支持的格式
+                                    objectStore.add({ url: item.url, data: response.data.body });
+                                })
+                                .catch(error => {
+                                    console.error(error);
+                                });
+                        }
+
+                        // 查看数据库存储的内容
+                        console.log("traverse db content")
+                        objectStore.openCursor().onsuccess = function (event) {
+                            const cursor = event.target.result;
+                            
+                            if (cursor) {
+                                console.log(cursor.value); // 输出当前游标指向的数据
+                                cursor.continue(); // 移动游标到下一条数据
+                            } else {
+                                console.log('No more data'); // 游标遍历完毕
+                            }
+                        };
+
+                    };
+
+                };
             }
         };
-
 
         const addSubscription = () => {
             dialog.value = true;
