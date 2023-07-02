@@ -15,8 +15,16 @@
 
                 <!-- 功能按钮区 -->
                 <v-list-item>
-                    <v-btn color="blue" class="mdi-plus-btn" icon="mdi-plus" @click="addSubscription" />
+                    <v-row>
+                        <v-col cols="7">
+                            <v-btn color="blue" class="mdi-plus-btn" icon="mdi-plus" @click="addSubscription" />
+                        </v-col>
+                        <v-col cols="5">
+                            <v-btn color="blue" class="mdi-plus-btn" icon="mdi-cog" @click="openSettings" />
+                        </v-col>
+                    </v-row>
                 </v-list-item>
+
 
                 <v-divider></v-divider>
 
@@ -45,7 +53,7 @@
         <v-main>
 
             <!-- 添加订阅弹窗 -->
-            <v-dialog v-model="dialog" max-width="500px">
+            <v-dialog v-model="ASDialog" max-width="500px">
                 <v-card>
                     <v-card-title>
                         <span class="headline">Add Subscription</span>
@@ -64,10 +72,37 @@
 
                     <v-card-actions>
                         <v-spacer></v-spacer>
-                        <v-btn color="blue darken-1" text @click="dialog = false">
+                        <v-btn color="blue darken-1"  @click="ASDialog = false">
                             Cancel
                         </v-btn>
-                        <v-btn color="blue darken-1" text @click="submitAddition">
+                        <v-btn color="blue darken-1"  @click="submitAddition">
+                            Submit
+                        </v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+
+            <!-- 设置弹窗 -->
+            <v-dialog v-model="settingDialog" max-width="500px">
+                <v-card>
+                    <v-card-title>
+                        <span class="headline">Setting</span>
+                    </v-card-title>
+
+                    <v-card-text>
+
+                        <v-row>
+                            <v-text-field v-model="timeInterval" label="Update Interval(min)"></v-text-field>
+                        </v-row>
+
+                    </v-card-text>
+
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn color="blue darken-1" text @click="settingDialog = false">
+                            Cancel
+                        </v-btn>
+                        <v-btn color="blue darken-1" text @click="submitSetting">
                             Submit
                         </v-btn>
                     </v-card-actions>
@@ -101,7 +136,6 @@
 <script>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
-
 export default {
     name: 'App',
     methods: {
@@ -128,7 +162,12 @@ export default {
     setup() {
         const drawer = ref(true);
         const items = ref([]);
-        const dialog = ref(false);
+
+        const ASDialog = ref(false);
+
+        const settingDialog = ref(false);
+        const timeInterval = ref('');
+
         const title = ref('');
         const url = ref('');
         const selected = ref('');
@@ -171,7 +210,7 @@ export default {
                     request.onsuccess = function (event) {
                         if (request.result) {
                             console.log("Date already exist, Get data from indexedDB")
-                            
+
                             // 通过 item.url 获取待解析的数据
                             parsedData.value = JSON.parse(request.result.data);
 
@@ -196,11 +235,14 @@ export default {
                                 });
                         }
 
+                        // 将当前时间存为最后更新时间存入 localStorage
+                        localStorage.setItem('lastCacheTime', new Date().getTime());
+
                         // 查看数据库存储的内容
                         console.log("traverse db content")
                         objectStore.openCursor().onsuccess = function (event) {
                             const cursor = event.target.result;
-                            
+
                             if (cursor) {
                                 console.log(cursor.value); // 输出当前游标指向的数据
                                 cursor.continue(); // 移动游标到下一条数据
@@ -216,22 +258,76 @@ export default {
         };
 
         const addSubscription = () => {
-            dialog.value = true;
+            ASDialog.value = true;
+        };
+        const openSettings = () => {
+            settingDialog.value = true;
         };
 
         const submitAddition = () => {
             items.value.push({ title: title.value, url: url.value });
             localStorage.setItem('items', JSON.stringify(items.value));
-            dialog.value = false;
+            ASDialog.value = false;
 
             // 清空输入框
             title.value = '';
             url.value = '';
         }
 
+        const submitSetting = () => {
+            // 将 timeInterval 存入 localStorage
+            localStorage.setItem('timeInterval', timeInterval.value)
+            settingDialog.value = false;
+        }
+
         const removeItem = (item) => {
             items.value = items.value.filter(elem => elem !== item);
             localStorage.setItem('items', JSON.stringify(items.value));
+        }
+
+        const clearCache = () => {
+            // 从 localStorage 获取最后缓存的时间
+            const lastCacheTime = localStorage.getItem('lastCacheTime');
+            // 也是获取，但是需要字符串转时间戳
+            timeInterval.value = localStorage.getItem('timeInterval')
+
+            // timeInterval 是用户输入的分钟数，使用这个变量，计算当前时间和 lastCacheTime 的差值
+            // 如果大于 timeInterval 对应的时间，那么则清空 IndexDb 所有内容
+
+            console.log("lastCacheTime: ", lastCacheTime)
+            console.log("user setting interval: ", timeInterval.value)
+            if (lastCacheTime && timeInterval.value) {
+                const currentTime = new Date().getTime();
+                const timeDiff = (currentTime - lastCacheTime) / 1000 / 60;
+                if (timeDiff > timeInterval.value)  {
+                    console.log("clear cache")
+                    // 打开数据库
+                    const dbPromise = indexedDB.open('rssReader', 1);
+
+                    // 配置 idb 更新
+                    dbPromise.onupgradeneeded = function (event) {
+                        const db = event.target.result;
+                        // 创建对象存储
+                        const objectStore = db.createObjectStore('rssData', { keyPath: 'url' });
+
+                        // 创建索引
+                        objectStore.createIndex('url', 'url', { unique: true })
+                    };
+
+                    dbPromise.onsuccess = function (event) {
+                        const db = event.target.result;
+
+                        // 创建事务
+                        const transaction = db.transaction(['rssData'], 'readwrite');
+                        const objectStore = transaction.objectStore('rssData');
+                        const request = objectStore.clear();
+
+                        request.onsuccess = function (event) {
+                            console.log("clear cache success")
+                        }
+                    }
+                }
+            }
         }
 
         onMounted(() => {
@@ -246,20 +342,25 @@ export default {
                 ];
                 localStorage.setItem('items', JSON.stringify(items.value));
             }
+            clearCache();
         });
 
         return {
             drawer,
             items,
-            dialog,
+            ASDialog,
+            settingDialog,
             title,
             url,
             selected,
             selectItem,
             addSubscription,
             submitAddition,
+            submitSetting,
             removeItem,
-            parsedData
+            openSettings,
+            parsedData,
+            timeInterval
         };
     },
 };
@@ -274,12 +375,8 @@ export default {
 .mdi-minus-btn {
     margin-top: 10px;
 }
-
-.v-list-item {
-    text-align: center;
-}
-
 .selected-item {
     background-color: rgba(0, 0, 255, 0.1) !important;
 }
 </style>
+
