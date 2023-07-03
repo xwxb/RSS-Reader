@@ -1,137 +1,137 @@
-<template>
-    <v-app>
-        <!-- 侧栏 -->
-        <v-navigation-drawer v-model="drawer" app>
-            <v-list>
+  <template>
+      <v-app>
+          <!-- 侧栏 -->
+          <v-navigation-drawer v-model="drawer" app>
+              <v-list>
 
-                <!-- 标题 -->
-                <v-list-item>
-                    <v-list-item-title class="title">
-                        RSS Reader
-                    </v-list-item-title>
-                </v-list-item>
+                  <!-- 标题 -->
+                  <v-list-item>
+                      <v-list-item-title class="title">
+                          RSS Reader
+                      </v-list-item-title>
+                  </v-list-item>
 
-                <v-divider></v-divider>
+                  <v-divider></v-divider>
 
-                <!-- 功能按钮区 -->
-                <v-list-item>
-                    <v-row>
-                        <v-col cols="7">
-                            <v-btn color="blue" class="mdi-plus-btn" icon="mdi-plus" @click="addSubscription" />
-                        </v-col>
-                        <v-col cols="5">
-                            <v-btn color="blue" class="mdi-plus-btn" icon="mdi-cog" @click="openSettings" />
-                        </v-col>
-                    </v-row>
-                </v-list-item>
+                  <!-- 功能按钮区 -->
+                  <v-list-item>
+                      <v-row>
+                          <v-col cols="7">
+                              <v-btn color="blue" class="mdi-plus-btn" icon="mdi-plus" @click="addSubscription" />
+                          </v-col>
+                          <v-col cols="5">
+                              <v-btn color="blue" class="mdi-plus-btn" icon="mdi-cog" @click="openSettings" />
+                          </v-col>
+                      </v-row>
+                  </v-list-item>
 
 
-                <v-divider></v-divider>
+                  <v-divider></v-divider>
 
-                <!-- 订阅列表 -->
-                <v-list-item v-for="(item, index) in items" :key="index" @click="selectItem(item)"
-                    :class="{ 'selected-item': selected == item.title }">
-                    <v-row>
-                        <v-col cols="9">
-                            <v-list-item-title>{{ item.title }}</v-list-item-title>
-                        </v-col>
-                        <v-col cols="3">
-                            <v-app-bar-nav-icon class="mdi-minus-btn" icon="mdi-minus" @click="removeItem(item)" />
-                        </v-col>
-                    </v-row>
-                </v-list-item>
+                  <!-- 订阅列表 -->
+                  <v-list-item v-for="(item, index) in items" :key="index" @click="selectItem(item)"
+                      :class="{ 'selected-item': selected == item.title }">
+                      <v-row>
+                          <v-col cols="9">
+                              <v-list-item-title>{{ item.title }}</v-list-item-title>
+                          </v-col>
+                          <v-col cols="3">
+                              <v-app-bar-nav-icon class="mdi-minus-btn" icon="mdi-minus" @click="removeItem(item)" />
+                          </v-col>
+                      </v-row>
+                  </v-list-item>
 
-            </v-list>
-        </v-navigation-drawer>
+              </v-list>
+          </v-navigation-drawer>
 
-        <v-app-bar app>
-            <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
-            <v-toolbar-title>{{ selected }}</v-toolbar-title>
+          <v-app-bar app>
+              <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
+              <v-toolbar-title>{{ selected }}</v-toolbar-title>
 
-        </v-app-bar>
+          </v-app-bar>
 
-        <v-main>
+          <v-main>
 
-            <!-- 添加订阅弹窗 -->
-            <v-dialog v-model="ASDialog" max-width="500px">
-                <v-card>
-                    <v-card-title>
-                        <span class="headline">Add Subscription</span>
-                    </v-card-title>
+              <!-- 添加订阅弹窗 -->
+              <v-dialog v-model="ASDialog" max-width="500px">
+                  <v-card>
+                      <v-card-title>
+                          <span class="headline">Add Subscription</span>
+                      </v-card-title>
 
-                    <v-card-text>
+                      <v-card-text>
 
-                        <v-row>
-                            <v-text-field v-model="title" label="Title"></v-text-field>
-                        </v-row>
-                        <v-row>
-                            <v-text-field v-model="url" label="URL"></v-text-field>
-                        </v-row>
+                          <v-row>
+                              <v-text-field v-model="title" label="Title"></v-text-field>
+                          </v-row>
+                          <v-row>
+                              <v-text-field v-model="url" label="URL"></v-text-field>
+                          </v-row>
 
-                    </v-card-text>
+                      </v-card-text>
 
-                    <v-card-actions>
-                        <v-spacer></v-spacer>
-                        <v-btn color="blue darken-1"  @click="ASDialog = false">
-                            Cancel
-                        </v-btn>
-                        <v-btn color="blue darken-1"  @click="submitAddition">
-                            Submit
-                        </v-btn>
-                    </v-card-actions>
-                </v-card>
-            </v-dialog>
+                      <v-card-actions>
+                          <v-spacer></v-spacer>
+                          <v-btn color="blue darken-1"  @click="ASDialog = false">
+                              Cancel
+                          </v-btn>
+                          <v-btn color="blue darken-1"  @click="submitAddition">
+                              Submit
+                          </v-btn>
+                      </v-card-actions>
+                  </v-card>
+              </v-dialog>
 
-            <!-- 设置弹窗 -->
-            <v-dialog v-model="settingDialog" max-width="500px">
-                <v-card>
-                    <v-card-title>
-                        <span class="headline">Setting</span>
-                    </v-card-title>
+              <!-- 设置弹窗 -->
+              <v-dialog v-model="settingDialog" max-width="500px">
+                  <v-card>
+                      <v-card-title>
+                          <span class="headline">Setting</span>
+                      </v-card-title>
 
-                    <v-card-text>
+                      <v-card-text>
 
-                        <v-row>
-                            <v-text-field v-model="timeInterval" label="Update Interval(min)"></v-text-field>
-                        </v-row>
+                          <v-row>
+                              <v-text-field v-model="timeInterval" label="Update Interval(min)"></v-text-field>
+                          </v-row>
 
-                    </v-card-text>
+                      </v-card-text>
 
-                    <v-card-actions>
-                        <v-spacer></v-spacer>
-                        <v-btn color="blue darken-1" text @click="settingDialog = false">
-                            Cancel
-                        </v-btn>
-                        <v-btn color="blue darken-1" text @click="submitSetting">
-                            Submit
-                        </v-btn>
-                    </v-card-actions>
-                </v-card>
-            </v-dialog>
+                      <v-card-actions>
+                          <v-spacer></v-spacer>
+                          <v-btn color="blue darken-1" text @click="settingDialog = false">
+                              Cancel
+                          </v-btn>
+                          <v-btn color="blue darken-1" text @click="submitSetting">
+                              Submit
+                          </v-btn>
+                      </v-card-actions>
+                  </v-card>
+              </v-dialog>
 
-            <!-- 解析呈现 XML 内容 -->
-            <v-container>
-                <v-row>
-                    <v-col v-for="(entry, index) in getEntries(parsedData)" :key="index">
-                        <v-card>
-                            <v-card-title>
-                                {{ entry.title }}
-                            </v-card-title>
-                            <v-card-text>
-                                {{ entry.description || entry.summary }}
-                            </v-card-text>
-                            <v-card-actions>
-                                <v-btn text :href="entry.link" target="_blank">Read More</v-btn>
-                            </v-card-actions>
-                        </v-card>
-                    </v-col>
-                </v-row>
-            </v-container>
+              <!-- 解析呈现 XML 内容 -->
+              <v-container>
+                  <v-row>
+                      <v-col v-for="(entry, index) in getEntries(parsedData)" :key="index">
+                          <v-card>
+                              <v-card-title>
+                                  {{ entry.title }}
+                              </v-card-title>
+                              <v-card-text>
+                                  {{ entry.description || entry.summary }}
+                              </v-card-text>
+                              <v-card-actions>
+                                  <v-btn text :href="entry.link" target="_blank">Read More</v-btn>
+                              </v-card-actions>
+                          </v-card>
+                      </v-col>
+                  </v-row>
+              </v-container>
 
-        </v-main>
+          </v-main>
 
-    </v-app>
-</template>
+      </v-app>
+  </template>
 
 <script>
 import { ref, onMounted } from 'vue';
@@ -343,6 +343,29 @@ export default {
                 localStorage.setItem('items', JSON.stringify(items.value));
             }
             clearCache();
+
+            // 向 localhost:8080/uc 发起请求，如果返回 {"update":true}
+          // 则调用浏览器 API 发起通知（不是 alert），提示用户有订阅源更新
+          axios.get("http://127.0.0.1:8080/cu", {
+            headers: {
+              'Access-Control-Allow-Origin': '*'
+            }
+          })
+            .then(response => {
+              if (!response.data.update) {
+                // 通知
+                // if (Notification.permission === 'granted') {
+                //   const notification = new Notification('RSS Reader', {
+                //     body: '有订阅源更新',
+                //     icon: 'https://vuejs.org/images/logo.png'
+                //   });
+                // }
+                alert("有订阅源更新！") // 不知道为什么通知不起作用，暂时用 alert 代替
+              }
+            })
+            .catch(error => {
+              console.error(error);
+            });
         });
 
         return {
