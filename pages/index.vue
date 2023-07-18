@@ -126,8 +126,9 @@
       <!-- 解析呈现 XML 内容 -->
       <v-container>
         <v-row>
-          <v-col v-for="(entry, index) in getEntries(parsedData)" :key="index">
+          <v-col v-for="(entry, index) in convertedData" :key="index">
             <v-card>
+              <v-checkbox-btn v-model="entry.read" @change="cachedReadStatus"></v-checkbox-btn>
               <v-card-title>
                 {{ entry.title }}
               </v-card-title>
@@ -154,25 +155,6 @@ import axios from 'axios';
 export default {
   name: 'App',
   methods: {
-    getEntries(parsedData) {
-      if (parsedData?.rss?.channel?.item) {
-        // Handle the original format
-        return parsedData.rss.channel.item.map((entry) => ({
-          title: entry.title,
-          description: entry.description,
-          link: entry.link
-        }));
-      } else if (parsedData?.feed?.entry) {
-        // Handle the new format
-        return parsedData.feed.entry.map((entry) => ({
-          title: entry.title,
-          description: entry.summary,
-          link: entry.link
-        }));
-      } else {
-        return [];
-      }
-    },
   },
   setup() {
     const drawer = ref(true);
@@ -187,12 +169,35 @@ export default {
     const url = ref('');
     const selected = ref('');
     const parsedData = ref();
+    const convertedData = ref();
 
     const localParseAPI = "http://localhost:3000/api/parse"
     const remoteParseAPI = "http://lrssrd.netlify.app/api/parse"
 
     const config = useRuntimeConfig()
     // console.log(config.public.parseAPI)
+
+    const getEntries = (parsedData) => {
+      if (parsedData?.rss?.channel?.item) {
+        // Handle the original format
+        return parsedData.rss.channel.item.map((entry) => ({
+          title: entry.title,
+          description: entry.description,
+          link: entry.link,
+          read: false
+        }));
+      } else if (parsedData?.feed?.entry) {
+        // Handle the new format
+        return parsedData.feed.entry.map((entry) => ({
+          title: entry.title,
+          description: entry.summary,
+          link: entry.link,
+          read: false
+        }));
+      } else {
+        return [];
+      }
+    }
 
     const selectItem = (item) => {
       // console.log(item)
@@ -228,6 +233,7 @@ export default {
 
               // 通过 item.url 获取待解析的数据
               parsedData.value = JSON.parse(request.result.data);
+              convertedData.value = getEntries(parsedData.value)
 
               console.log(parsedData.value)
             } else {
@@ -237,6 +243,8 @@ export default {
                     parsedData.value = JSON.parse(response.data.body);
                     // console.log(response.data.body)
                     // console.log(parsedData.value)
+
+                    convertedData.value = getEntries(parsedData.value)
 
                     // 创建事务进行存储
                     const transaction = db.transaction(['rssData'], 'readwrite');
@@ -378,6 +386,11 @@ export default {
       }
     }
 
+    const cachedReadStatus = () =>{
+      // 就是写到这里，发现设计上就有问题，打算完全重构后再写
+        localStorage.setItem('convertedData', JSON.stringify(convertedData.value));
+    }
+
     onMounted(() => {
       const storedItems = localStorage.getItem('items');
       if (storedItems) {
@@ -391,6 +404,7 @@ export default {
         localStorage.setItem('items', JSON.stringify(items.value));
       }
       clearCache();
+      // localStorage.setItem('convertedData', JSON.stringify(convertedData.value))
 
       // 向 localhost:8080/uc 发起请求，如果返回 {"update":true}
       // 则调用浏览器 API 发起通知（不是 alert），提示用户有订阅源更新
@@ -431,10 +445,12 @@ export default {
       removeItem,
       openSettings,
       parsedData,
+      convertedData,
       timeInterval,
       exportSubscriptions,
       importSubscriptions,
-      handleFileSelect
+      handleFileSelect,
+      cachedReadStatus
     };
   },
 };
